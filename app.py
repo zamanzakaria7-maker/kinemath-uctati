@@ -13,13 +13,10 @@ st.caption("Modul Bimbingan Kinematik 1D & Diagnosis Algebra (Diploma UC TATI)")
 # Fungsi untuk mengecilkan saiz imej bagi memendekkan masa pemprosesan
 def optimize_image(uploaded_file, max_dim=1024):
     image = Image.open(uploaded_file)
-    # Tukar kepada RGB jika format RGBA/PNG
     if image.mode in ("RGBA", "P"):
         image = image.convert("RGB")
-    # Kecilkan dimensi jika melebihi max_dim sambil kekalkan nisbah aspek
     image.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
     
-    # Mampatkan ke format JPEG dengan kualiti optimum (saiz sangat kecil tapi teks tajam)
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG", quality=80, optimize=True)
     buffer.seek(0)
@@ -74,18 +71,18 @@ elif mode == "Jana Soalan Baharu (AI) 🎲":
 else:
     question = st.text_area("Tampal atau Taip Soalan Anda:", value="", placeholder="Tulis soalan fizik di sini...", height=90)
 
-# 3. Fasa Ekstraksi Maklumat
+# 3. Fasa Ekstraksi Maklumat (Semua lalai kepada 'Tidak Terlibat')
 st.subheader("2. Kenal Pasti Parameter (u, v, s, a, t)")
 st.write("Tentukan status bagi setiap kuantiti gerakan:")
 
 col1, col2 = st.columns(2)
 with col1:
-    u_status = st.selectbox("Halaju Awal (u):", ["Diberi", "Dicari", "Tidak Terlibat"], index=0)
+    u_status = st.selectbox("Halaju Awal (u):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
     v_status = st.selectbox("Halaju Akhir (v):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
-    s_status = st.selectbox("Sesaran (s):", ["Diberi", "Dicari", "Tidak Terlibat"], index=1)
+    s_status = st.selectbox("Sesaran (s):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
 with col2:
-    a_status = st.selectbox("Pecutan (a):", ["Diberi", "Dicari", "Tidak Terlibat"], index=0)
-    t_status = st.selectbox("Masa (t):", ["Diberi", "Dicari", "Tidak Terlibat"], index=0)
+    a_status = st.selectbox("Pecutan (a):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
+    t_status = st.selectbox("Masa (t):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
 
 # 4. Fasa Pemilihan Formula
 st.subheader("3. Pilih Persamaan Kinematik")
@@ -115,7 +112,6 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
         st.warning("Sila pastikan teks soalan diisi terlebih dahulu.")
         st.stop()
 
-    # Optimumkan imej secara automatik sebelum dihantar
     with st.spinner("Sedang mengoptimumkan saiz gambar..."):
         img = optimize_image(image_file)
     
