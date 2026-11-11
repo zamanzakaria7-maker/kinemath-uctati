@@ -1,6 +1,7 @@
 import streamlit as st
 from google import genai
 from PIL import Image
+import io
 import time
 
 # Konfigurasi paparan mesra telefon pintar
@@ -8,6 +9,21 @@ st.set_page_config(page_title="KineMath Remedial - UC TATI", page_icon="📐", l
 
 st.title("📐 KineMath AI Tutor")
 st.caption("Modul Bimbingan Kinematik 1D & Diagnosis Algebra (Diploma UC TATI)")
+
+# Fungsi untuk mengecilkan saiz imej bagi memendekkan masa pemprosesan
+def optimize_image(uploaded_file, max_dim=1024):
+    image = Image.open(uploaded_file)
+    # Tukar kepada RGB jika format RGBA/PNG
+    if image.mode in ("RGBA", "P"):
+        image = image.convert("RGB")
+    # Kecilkan dimensi jika melebihi max_dim sambil kekalkan nisbah aspek
+    image.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+    
+    # Mampatkan ke format JPEG dengan kualiti optimum (saiz sangat kecil tapi teks tajam)
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG", quality=80, optimize=True)
+    buffer.seek(0)
+    return Image.open(buffer)
 
 # 1. Tetapan API Key
 api_key = st.secrets.get("GEMINI_API_KEY", None)
@@ -20,10 +36,9 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 2. Pengurusan Soalan Fizik (Bank Soalan + Penjana AI)
+# 2. Pengurusan Soalan Fizik
 st.subheader("1. Soalan Fizik Kinematik")
 
-# Koleksi soalan preset pelbagai senario
 preset_questions = {
     "Senario 1: Memecut dari Pegun (Cari Sesaran)": 
         "Sebuah kereta bermula dari keadaan pegun dan memecut secara seragam pada kadar 3 m/s² selama 4 saat. Hitungkan sesaran kereta tersebut.",
@@ -37,7 +52,6 @@ preset_questions = {
 
 mode = st.radio("Pilih Sumber Soalan:", ["Bank Soalan", "Jana Soalan Baharu (AI) 🎲", "Taip Soalan Sendiri"], horizontal=True)
 
-# Simpan soalan dalam session state supaya tidak hilang semasa ambil gambar
 if "current_question" not in st.session_state:
     st.session_state.current_question = preset_questions["Senario 1: Memecut dari Pegun (Cari Sesaran)"]
 
@@ -60,7 +74,7 @@ elif mode == "Jana Soalan Baharu (AI) 🎲":
 else:
     question = st.text_area("Tampal atau Taip Soalan Anda:", value="", placeholder="Tulis soalan fizik di sini...", height=90)
 
-# 3. Fasa Ekstraksi Maklumat (Scaffolding Fizik)
+# 3. Fasa Ekstraksi Maklumat
 st.subheader("2. Kenal Pasti Parameter (u, v, s, a, t)")
 st.write("Tentukan status bagi setiap kuantiti gerakan:")
 
@@ -101,11 +115,13 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
         st.warning("Sila pastikan teks soalan diisi terlebih dahulu.")
         st.stop()
 
-    img = Image.open(image_file)
+    # Optimumkan imej secara automatik sebelum dihantar
+    with st.spinner("Sedang mengoptimumkan saiz gambar..."):
+        img = optimize_image(image_file)
     
     prompt = f"""
     Anda adalah pensyarah Fizik dan Matematik perintis di UC TATI. 
-    Tugasan anda adalah mendiagnosis jalan kerja tulisan tangan pelajar ini secara empati dan konstruktif.
+    Tugasan anda adalah mendiagnosis jalan kerja tulisan tangan pelajar ini secara empati, padat dan konstruktif.
 
     Konteks Masalah:
     - Soalan: {question}
@@ -122,35 +138,34 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
        - Adakah operasi punca kuasa atau kuasa dua betul?
     4. Berikan maklum balas berstruktur:
        - **Status Konsep Fizik:** (Nyatakan sama ada konsep & gantian formula betul)
-       - **Diagnosis Ralat Algebra:** (Jika ada ralat, tunjukkan baris mana dan terangkan prinsip matematik yang betul dengan mudah)
-       - **Langkah Pembetulan:** (Tunjukkan satu langkah demi satu cara menyelesaikan algebra tersebut dengan jelas)
+       - **Diagnosis Ralat Algebra:** (Jika ada ralat, tunjukkan baris mana dan terangkan prinsip matematik yang betul dengan ringkas)
+       - **Langkah Pembetulan:** (Tunjukkan langkah penyelesaian algebra yang betul)
     
-    Gunakan Bahasa Melayu yang mesra dan mudah difahami oleh pelajar diploma.
+    Gunakan Bahasa Melayu yang mesra, ringkas dan mudah difahami oleh pelajar diploma.
     """
 
     candidate_models = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
     success = False
 
-    with st.spinner("AI sedang membaca tulisan tangan dan menyemak operasi algebra..."):
+    with st.spinner("AI sedang membaca tulisan tangan dan menyemak algebra..."):
         for model_name in candidate_models:
             try:
                 response = client.models.generate_content(
                     model=model_name,
                     contents=[prompt, img]
                 )
-                st.success(f"Analisis Selesai! (Diproses oleh {model_name})")
+                st.success(f"Analisis Selesai! (Model: {model_name})")
                 st.markdown(response.text)
                 success = True
                 break
             except Exception as err:
                 err_msg = str(err).lower()
                 if "503" in err_msg or "unavailable" in err_msg or "high demand" in err_msg:
-                    st.warning(f"Model {model_name} sedang sibuk, beralih ke model sandaran...")
-                    time.sleep(2)
+                    time.sleep(1.5)
                     continue
                 else:
                     st.error(f"Ralat: {err}")
                     break
 
         if not success:
-            st.error("Pelayan AI sedang mengalami kesesakan luar biasa pada semua model. Sila cuba tekan butang semak sekali lagi dalam masa beberapa saat.")
+            st.error("Pelayan AI sedang sibuk. Sila tekan butang semak sekali lagi.")
