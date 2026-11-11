@@ -83,39 +83,16 @@ KINEMATIC_TIPS = [
     "💡 **Kata Kunci 'Berpatah Balik':** Pada detik objek berpatah balik, halajunya menjadi sifar seketika ($v = 0\\text{ m/s}$).",
 ]
 
-# Bank Soalan Dikategorikan Berdasarkan Parameter Yang Dicari (target)
-QUESTION_BANK_CATEGORIZED = [
-    {
-        "target": "s",
-        "text": "Sebuah kereta bermula dari keadaan pegun dan memecut secara seragam pada kadar 3 m/s² selama 4 saat. Hitungkan sesaran kereta tersebut.",
-    },
-    {
-        "target": "t",
-        "text": "Sebuah motosikal bergerak dengan halaju 25 m/s kemudian membrek dengan nyahpecutan seragam 5 m/s² sehingga berhenti. Berapakah masa yang diambil untuk motosikal itu berhenti sepenuhnya?",
-    },
-    {
-        "target": "v",
-        "text": "Sebuah lori memecut dari 10 m/s ke halaju akhir v merentasi jarak 75 m dengan pecutan 2 m/s². Tentukan halaju akhir lori tersebut.",
-    },
-    {
-        "target": "a",
-        "text": "Sebuah van yang bergerak dari halaju 4 m/s mencapai kelajuan 24 m/s dalam tempoh masa 5 saat. Hitungkan pecutan van tersebut.",
-    },
-    {
-        "target": "u",
-        "text": "Sebuah bas membrek dengan nyahpecutan 3 m/s² selama 4 saat dan berhenti sepenuhnya di lampu isyarat. Tentukan kelajuan awal bas sejurus sebelum membrek.",
-    },
-    {
-        "target": "s",
-        "text": "Sebuah kereta api bergerak pada halaju 30 m/s menekan brek kecemasan dan berhenti selepas 6 saat. Hitungkan jarak yang dilalui sepanjang tempoh membrek tersebut.",
-    },
-    {
-        "target": "t",
-        "text": "Sebuah kenderaan elektrik memecut dari keadaan pegun pada kadar 4 m/s² sehingga merentasi jarak 72 m. Cari masa yang diambil untuk perjalanan itu.",
-    },
+# Bank Sandaran Sahaja (Hanya digunakan jika sambungan AI gagal)
+FALLBACK_QUESTIONS = [
+    {"target": "s", "text": "Sebuah kereta bermula dari keadaan pegun dan memecut secara seragam pada kadar 3 m/s² selama 4 saat. Hitungkan sesaran kereta tersebut."},
+    {"target": "t", "text": "Sebuah motosikal bergerak dengan halaju 25 m/s kemudian membrek dengan nyahpecutan seragam 5 m/s² sehingga berhenti. Berapakah masa yang diambil untuk motosikal itu berhenti sepenuhnya?"},
+    {"target": "v", "text": "Sebuah lori memecut dari 10 m/s ke halaju akhir v merentasi jarak 75 m dengan pecutan 2 m/s². Tentukan halaju akhir lori tersebut."},
+    {"target": "a", "text": "Sebuah van yang bergerak dari halaju 4 m/s mencapai kelajuan 24 m/s dalam tempoh masa 5 saat. Hitungkan pecutan van tersebut."},
+    {"target": "u", "text": "Sebuah bas membrek dengan nyahpecutan 3 m/s² selama 4 saat dan berhenti sepenuhnya di lampu isyarat. Tentukan kelajuan awal bas sejurus sebelum membrek."}
 ]
 
-# Inisialisasi Session State
+# Inisialisasi Session State Asas
 if "records" not in st.session_state:
     st.session_state.records = []
 if "seen_questions" not in st.session_state:
@@ -128,9 +105,6 @@ if "last_grade" not in st.session_state:
     st.session_state.last_grade = None
 if "current_target" not in st.session_state:
     st.session_state.current_target = "s"
-if "current_question" not in st.session_state:
-    st.session_state.current_question = QUESTION_BANK_CATEGORIZED[0]["text"]
-    st.session_state.seen_questions.append(QUESTION_BANK_CATEGORIZED[0]["text"])
 
 # Menu Sisi: Rekod Prestasi & Gred
 with st.sidebar:
@@ -143,9 +117,7 @@ with st.sidebar:
         html_badges = ""
         for rec in st.session_state.records:
             g = rec[-1] if rec else "C"
-            html_badges += (
-                f"<span class='grade-record-badge badge-{g}'>{rec}</span>"
-            )
+            html_badges += f"<span class='grade-record-badge badge-{g}'>{rec}</span>"
         st.markdown(html_badges, unsafe_allow_html=True)
         st.caption("Contoh: **1E** = Percubaan 1 mendapat Gred E")
     else:
@@ -164,7 +136,6 @@ with st.sidebar:
 st.title("📐 KineMath AI Tutor")
 st.caption("Modul Bimbingan Kinematik 1D & Diagnosis Algebra (Diploma UC TATI)")
 
-
 def optimize_image(uploaded_file, max_dim=768):
     image = Image.open(uploaded_file)
     if image.mode in ("RGBA", "P"):
@@ -175,105 +146,102 @@ def optimize_image(uploaded_file, max_dim=768):
     buffer.seek(0)
     return Image.open(buffer)
 
-
 # 1. Tetapan API Key
 api_key = st.secrets.get("GEMINI_API_KEY", None)
 if not api_key:
-    api_key = st.sidebar.text_input(
-        "Masukkan Google Gemini API Key:", type="password"
-    )
+    api_key = st.sidebar.text_input("Masukkan Google Gemini API Key:", type="password")
 
 if not api_key:
-    st.info(
-        "Sila masukkan Gemini API Key di bahagian menu sisi untuk memulakan."
-    )
+    st.info("Sila masukkan Gemini API Key di bahagian menu sisi untuk memulakan.")
     st.stop()
 
 client = genai.Client(api_key=api_key)
 
-
-# Fungsi Dapatkan Soalan Seterusnya dengan Variasi Parameter yang Berbeza
-def get_varied_next_question():
+# FUNGSI UTAMA: PENJANAAN SOALAN OLEH AI SECARA SEGAR & DINAMIK
+def generate_ai_kinematics_question():
+    """Menjana soalan baharu secara dinamik menggunakan AI dengan sasaran parameter berbeza"""
     current_target = st.session_state.current_target
-    available_targets = [
-        p for p in ["u", "v", "s", "a", "t"] if p != current_target
-    ]
+    available_targets = [p for p in ["u", "v", "s", "a", "t"] if p != current_target]
     chosen_target = random.choice(available_targets)
 
-    # Cari soalan dalam bank soalan yang belum pernah dijawab dan mensasarkan parameter baharu
-    candidates = [
-        item
-        for item in QUESTION_BANK_CATEGORIZED
-        if item["target"] == chosen_target
-        and item["text"] not in st.session_state.seen_questions
-    ]
-
-    if candidates:
-        selected = random.choice(candidates)
-        st.session_state.current_target = selected["target"]
-        return selected["text"]
-
-    # Jika soalan dalam bank habis bagi sasaran tersebut, minta AI jana soalan unik dengan target berbeza
     param_names = {
-        "u": "halaju awal (u)",
-        "v": "halaju akhir (v)",
-        "s": "jarak atau sesaran (s)",
-        "a": "pecutan atau nyahpecutan (a)",
-        "t": "masa yang diambil (t)",
+        "u": "halaju awal (u dalam m/s)",
+        "v": "halaju akhir (v dalam m/s)",
+        "s": "sesaran atau jarak (s dalam m)",
+        "a": "pecutan atau nyahpecutan (a dalam m/s²)",
+        "t": "masa yang diambil (t dalam saat)",
     }
 
-    past_summary = "; ".join(st.session_state.seen_questions[-3:])
-    gen_prompt = f"""
-    Hasilkan satu soalan baharu fizik topik Kinematik 1 Dimensi (gerakan mendatar, bukan jatuh bebas) untuk pelajar Diploma Kejuruteraan.
-    SYARAT WAJIB:
-    1. Soalan MESTI meminta pelajar mencari {param_names[chosen_target]} sebagai jawapan akhir.
-    2. Jangan buat soalan yang mencari parameter yang sama seperti soalan-soalan sebelum ini.
-    3. Rujukan soalan terdahulu (elakkan sama): [{past_summary}].
-    Tulis TEKS SOALAN SAHAJA dalam Bahasa Melayu ringkas tanpa sebarang jalan kerja.
-    """
-    try:
-        resp = client.models.generate_content(
-            model="gemini-3.8-flash", contents=gen_prompt
-        )
-        text_generated = resp.text.strip()
-        if text_generated:
-            st.session_state.current_target = chosen_target
-            return text_generated
-    except Exception:
-        pass
-
-    # Fallback
-    fallback = [
-        item
-        for item in QUESTION_BANK_CATEGORIZED
-        if item["target"] != current_target
+    scenarios = [
+        "kereta api elektrik memecut keluar dari stesen",
+        "kereta lumba membrek sebelum selekoh tajam",
+        "dron penghantar barang bergerak meluncur di atas trek lurus",
+        "atlet larian pecut 100m memecut dari blok permulaan",
+        "bot laju memperlahankan kelajuan menghampiri jeti",
+        "kenderaan autonomi mengesan halangan dan berhenti kecemasan",
+        "kren kontena menarik beban di atas landasan mendatar",
+        "motosikal memotong kenderaan di lebuh raya"
     ]
-    chosen = random.choice(fallback)
-    st.session_state.current_target = chosen["target"]
-    return chosen["text"]
+    chosen_scenario = random.choice(scenarios)
+    past_summary = "; ".join(st.session_state.seen_questions[-3:]) if st.session_state.seen_questions else "Tiada"
 
+    gen_prompt = f"""
+    Anda pensyarah fizik mekanik. Hasilkan SATU soalan baharu topik Kinematik Linear 1 Dimensi (gerakan mendatar sahaja, bukan graviti/jatuh bebas) untuk pelajar Diploma Kejuruteraan.
+
+    PANDUAN PEMBINAAN SOALAN:
+    1. Konteks/Senario: {chosen_scenario}.
+    2. SASARAN WAJIB: Soalan mesti menghendaki pelajar mengira {param_names[chosen_target]} sebagai jawapan akhir.
+    3. Nyatakan nilai-nilai parameter lain secara jelas dan berikan angka yang logik, bersih, serta mudah dikira (contoh: nombor bulat atau perpuluhan mudah).
+    4. Pastikan ayat soalan UNIK dan berbeza daripada soalan lepas: [{past_summary}].
+    5. FORMAT OUTPUT: Berikan teks soalan SAHAJA dalam Bahasa Melayu. JANGAN sertakan jawapan, formula, jalan kerja, atau tajuk pengenalan.
+    """
+
+    candidate_models = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
+    for model_name in candidate_models:
+        try:
+            resp = client.models.generate_content(
+                model=model_name,
+                contents=gen_prompt
+            )
+            text_generated = resp.text.strip().replace('"', '').replace("`", "")
+            if len(text_generated) > 20:
+                st.session_state.current_target = chosen_target
+                return text_generated
+        except Exception:
+            continue
+
+    # Sandaran kecemasan jika semua panggilan model gagal
+    fallback = [item for item in FALLBACK_QUESTIONS if item["target"] != current_target]
+    chosen_fb = random.choice(fallback)
+    st.session_state.current_target = chosen_fb["target"]
+    return chosen_fb["text"]
+
+# Pastikan soalan pertama dimuatkan menggunakan AI jika belum ada
+if "current_question" not in st.session_state:
+    with st.spinner("Menjana soalan kinematik pertama daripada AI..."):
+        first_q = generate_ai_kinematics_question()
+        st.session_state.current_question = first_q
+        st.session_state.seen_questions.append(first_q)
 
 # 2. Bahagian Paparan Soalan
-st.subheader("1. Soalan Fizik Kinematik")
+st.subheader("1. Soalan Fizik Kinematik (Dijana AI)")
 st.info(f"📌 **Soalan Sekarang:**\n\n{st.session_state.current_question}")
 
 col_src1, col_src2 = st.columns(2)
 with col_src1:
-    if st.button("🎲 Tukar Variasi Soalan (Parameter Lain)"):
-        st.session_state.current_question = get_varied_next_question()
-        st.session_state.seen_questions.append(st.session_state.current_question)
-        st.session_state.last_review = None
-        st.session_state.last_grade = None
-        st.session_state.uploader_key += 1
-        st.rerun()
+    if st.button("✨ Jana Soalan Baharu (AI Generator)"):
+        with st.spinner("AI sedang menggubal soalan baharu..."):
+            new_q = generate_ai_kinematics_question()
+            st.session_state.current_question = new_q
+            st.session_state.seen_questions.append(new_q)
+            st.session_state.last_review = None
+            st.session_state.last_grade = None
+            st.session_state.uploader_key += 1
+            st.rerun()
 
 with col_src2:
     if st.checkbox("Tulis / Edit Teks Soalan Sendiri"):
-        edited_q = st.text_area(
-            "Tulis soalan anda:",
-            value=st.session_state.current_question,
-            height=70,
-        )
+        edited_q = st.text_area("Tulis soalan anda:", value=st.session_state.current_question, height=70)
         st.session_state.current_question = edited_q
 
 # 3. Fasa Ekstraksi Parameter
@@ -282,46 +250,21 @@ st.write("Tentukan status bagi setiap kuantiti gerakan:")
 
 col1, col2 = st.columns(2)
 with col1:
-    u_status = st.selectbox(
-        "Halaju Awal (u):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2
-    )
-    st.markdown(
-        f"<div class='blue-param-indicator'>✓ Status u: <b>{u_status}</b></div>",
-        unsafe_allow_html=True,
-    )
+    u_status = st.selectbox("Halaju Awal (u):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
+    st.markdown(f"<div class='blue-param-indicator'>✓ Status u: <b>{u_status}</b></div>", unsafe_allow_html=True)
 
-    v_status = st.selectbox(
-        "Halaju Akhir (v):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2
-    )
-    st.markdown(
-        f"<div class='blue-param-indicator'>✓ Status v: <b>{v_status}</b></div>",
-        unsafe_allow_html=True,
-    )
+    v_status = st.selectbox("Halaju Akhir (v):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
+    st.markdown(f"<div class='blue-param-indicator'>✓ Status v: <b>{v_status}</b></div>", unsafe_allow_html=True)
 
-    s_status = st.selectbox(
-        "Sesaran (s):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2
-    )
-    st.markdown(
-        f"<div class='blue-param-indicator'>✓ Status s: <b>{s_status}</b></div>",
-        unsafe_allow_html=True,
-    )
+    s_status = st.selectbox("Sesaran (s):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
+    st.markdown(f"<div class='blue-param-indicator'>✓ Status s: <b>{s_status}</b></div>", unsafe_allow_html=True)
 
 with col2:
-    a_status = st.selectbox(
-        "Pecutan (a):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2
-    )
-    st.markdown(
-        f"<div class='blue-param-indicator'>✓ Status a: <b>{a_status}</b></div>",
-        unsafe_allow_html=True,
-    )
+    a_status = st.selectbox("Pecutan (a):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
+    st.markdown(f"<div class='blue-param-indicator'>✓ Status a: <b>{a_status}</b></div>", unsafe_allow_html=True)
 
-    t_status = st.selectbox(
-        "Masa (t):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2
-    )
-    st.markdown(
-        f"<div class='blue-param-indicator'>✓ Status t: <b>{t_status}</b></div>",
-        unsafe_allow_html=True,
-    )
+    t_status = st.selectbox("Masa (t):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
+    st.markdown(f"<div class='blue-param-indicator'>✓ Status t: <b>{t_status}</b></div>", unsafe_allow_html=True)
 
 # 4. Fasa Pemilihan Formula
 st.subheader("3. Pilih Persamaan Kinematik")
@@ -335,10 +278,7 @@ equation_options = [
 selected_eq = st.selectbox("Persamaan yang paling sesuai:", equation_options)
 
 if selected_eq != "-- Pilih Persamaan --":
-    st.markdown(
-        f"<div class='blue-param-indicator'>✓ Formula Dipilih: <b>{selected_eq}</b></div>",
-        unsafe_allow_html=True,
-    )
+    st.markdown(f"<div class='blue-param-indicator'>✓ Formula Dipilih: <b>{selected_eq}</b></div>", unsafe_allow_html=True)
 
 # 5. Fasa Muat Naik / Tangkap Gambar Jawapan
 st.subheader("4. Selesaikan & Semak Algebra")
@@ -353,9 +293,7 @@ pilihan_kamera = st.radio(
 
 image_file = None
 if pilihan_kamera == "📱 Buka Kamera Telefon / Muat Naik Fail (Paling Mudah)":
-    st.caption(
-        "💡 *Tips:* Klik butang di bawah dan pilih kamera telefon untuk terus menangkap gambar tulisan tangan."
-    )
+    st.caption("💡 *Tips:* Klik butang di bawah dan pilih kamera telefon untuk terus menangkap gambar tulisan tangan.")
     image_file = st.file_uploader(
         "Pilih Fail / Buka Kamera",
         type=["jpg", "jpeg", "png"],
@@ -369,7 +307,6 @@ else:
 
 # Butang Semakan & Penilaian Gred
 if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
-    # 1. Pilih Tips Rawak daripada Senarai Kata Kunci
     random_tip = random.choice(KINEMATIC_TIPS)
     tips_placeholder = st.empty()
     tips_placeholder.markdown(
@@ -424,9 +361,7 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
                         full_response += chunk.text
                         display_live = full_response
                         for g in ["A", "B", "C", "D", "E"]:
-                            display_live = display_live.replace(
-                                f"[GRED: {g}]", ""
-                            )
+                            display_live = display_live.replace(f"[GRED: {g}]", "")
                         response_placeholder.markdown(display_live)
 
                 success = True
@@ -445,11 +380,9 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
                     st.error(f"Ralat ({model_name}): {err}")
                     break
 
-        # 2. Hentikan & padam paparan tips sebaik sahaja proses selesai
         tips_placeholder.empty()
 
         if success:
-            # Kenal pasti gred daripada ulasan
             detected_grade = "C"
             for g in ["A", "B", "C", "D", "E"]:
                 if f"[GRED: {g}]" in full_response:
@@ -463,41 +396,32 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
             st.session_state.last_review = full_response
             st.session_state.last_grade = detected_grade
 
-            # Paparan Kotak Gred & Kata-Kata Semangat (Tanpa kod rekod percubaan pada tajuk)
             st.divider()
             if detected_grade == "A":
                 st.balloons()
-                st.success(
-                    "### 🌟 GRED A (Cemerlang)\n\n**Hebat sekali!** Penguasaan konsep fizik dan ketelitian algebra anda bertaraf kelas pertama. Kekalkan momentum cemerlang ini!"
-                )
+                st.success("### 🌟 GRED A (Cemerlang)\n\n**Hebat sekali!** Penguasaan konsep fizik dan ketelitian algebra anda bertaraf kelas pertama. Kekalkan momentum cemerlang ini!")
             elif detected_grade == "B":
-                st.info(
-                    "### 👍 GRED B (Sangat Baik)\n\n**Usaha yang sangat mantap!** Konsep dan jalan kerja utama anda sudah kukuh. Cuma perlu sedikit lebih teliti pada semakan unit atau pengiraan akhir."
-                )
+                st.info("### 👍 GRED B (Sangat Baik)\n\n**Usaha yang sangat mantap!** Konsep dan jalan kerja utama anda sudah kukuh. Cuma perlu sedikit lebih teliti pada semakan unit atau pengiraan akhir.")
             elif detected_grade == "C":
-                st.warning(
-                    "### 💡 GRED C (Memuaskan)\n\n**Asas fizik anda sudah betul!** Beri perhatian lebih pada pemindahan simbol dan manipulasi algebra di langkah pertengahan."
-                )
+                st.warning("### 💡 GRED C (Memuaskan)\n\n**Asas fizik anda sudah betul!** Beri perhatian lebih pada pemindahan simbol dan manipulasi algebra di langkah pertengahan.")
             elif detected_grade == "D":
-                st.warning(
-                    "### 🔍 GRED D (Perlu Usaha Tambahan)\n\n**Jangan berputus asa!** Semak semula gantian nilai ke dalam pembolehubah formula. Teliti di mana kesilapan berlaku pada diagnosis di atas."
-                )
+                st.warning("### 🔍 GRED D (Perlu Usaha Tambahan)\n\n**Jangan berputus asa!** Semak semula gantian nilai ke dalam pembolehubah formula. Teliti di mana kesilapan berlaku pada diagnosis di atas.")
             else:
-                st.error(
-                    "### 🚀 GRED E (Bina Semula Asas)\n\n**Setiap pakar bermula dari kesilapan.** Ambil masa fahami semula pemilihan formula dan nilai parameter. Cuba soalan baharu di bawah!"
-                )
+                st.error("### 🚀 GRED E (Bina Semula Asas)\n\n**Setiap pakar bermula dari kesilapan.** Ambil masa fahami semula pemilihan formula dan nilai parameter. Cuba soalan baharu di bawah!")
         else:
             st.error("Pelayan AI sedang sibuk. Sila tekan butang sekali lagi.")
 
-# 6. Bahagian Menu Langkah Seterusnya (Tanpa paparan teks rekod/parameter)
+# 6. Bahagian Menu Langkah Seterusnya
 if st.session_state.last_review:
     st.divider()
     st.subheader("🎯 Langkah Seterusnya")
 
-    if st.button("➡️ Cuba Soalan Seterusnya (Variasi Parameter Baharu)", type="primary"):
-        st.session_state.current_question = get_varied_next_question()
-        st.session_state.seen_questions.append(st.session_state.current_question)
-        st.session_state.last_review = None
-        st.session_state.last_grade = None
-        st.session_state.uploader_key += 1
-        st.rerun()
+    if st.button("➡️ Cuba Soalan Seterusnya (Dijana AI)", type="primary"):
+        with st.spinner("AI sedang menyediakan soalan seterusnya..."):
+            next_q = generate_ai_kinematics_question()
+            st.session_state.current_question = next_q
+            st.session_state.seen_questions.append(next_q)
+            st.session_state.last_review = None
+            st.session_state.last_grade = None
+            st.session_state.uploader_key += 1
+            st.rerun()
