@@ -36,7 +36,7 @@ with st.sidebar:
     progress = min(st.session_state.xp / next_level_xp, 1.0)
     st.progress(progress)
     st.caption(f"Terkumpul: **{st.session_state.xp} XP** / Sasaran Seterusnya: {next_level_xp} XP")
-    st.write(f"Soalan Dihantar: **{st.session_state.questions_solved}**")
+    st.write(f"Soalan Disemak: **{st.session_state.questions_solved}**")
     
     st.divider()
     st.write("🎁 **Koleksi Hadiah Anda:**")
@@ -111,7 +111,7 @@ elif mode == "Jana Soalan Baharu (AI) 🎲":
 else:
     question = st.text_area("Tampal atau Taip Soalan Anda:", value="", placeholder="Tulis soalan fizik di sini...", height=90)
 
-# 3. Fasa Ekstraksi Maklumat
+# 3. Fasa Ekstraksi Maklumat (Lalai: Tidak Terlibat)
 st.subheader("2. Kenal Pasti Parameter (u, v, s, a, t)")
 st.write("Tentukan status bagi setiap kuantiti gerakan:")
 
@@ -139,13 +139,20 @@ selected_eq = st.selectbox("Persamaan yang paling sesuai:", equation_options)
 st.subheader("4. Selesaikan & Semak Algebra")
 st.write("Selesaikan jalan kerja di atas kertas, kemudian ambil gambar:")
 
-source = st.radio("Pilihan input gambar:", ["Guna Kamera Telefon", "Muat Naik Fail"], horizontal=True)
+pilihan_kamera = st.radio(
+    "Pilihan kaedah gambar:",
+    ["📱 Buka Kamera Telefon / Muat Naik Fail (Paling Mudah)", "📷 Kamera Web Pelayar (Streamlit)"],
+    horizontal=True
+)
 
 image_file = None
-if source == "Guna Kamera Telefon":
-    image_file = st.camera_input("Ambil gambar kertas jawapan anda")
+
+if pilihan_kamera == "📱 Buka Kamera Telefon / Muat Naik Fail (Paling Mudah)":
+    st.caption("💡 *Tips Telefon Pintar:* Tekan butang di bawah dan pilih **Camera** untuk terus guna kamera belakang telefon anda.")
+    image_file = st.file_uploader("Tekan untuk Buka Kamera / Pilih Gambar", type=["jpg", "jpeg", "png"])
 else:
-    image_file = st.file_uploader("Pilih gambar dari galeri", type=["jpg", "jpeg", "png"])
+    st.caption("💡 *Tips Kamera Web:* Jika kamera menghadap muka (selfie), tekan ikon pusingan **(⟲)** di penjuru atas kotak kamera untuk tukar ke kamera belakang.")
+    image_file = st.camera_input("Ambil gambar kertas jawapan")
 
 if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
     if not question.strip():
@@ -198,7 +205,7 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
                 )
                 output_text = response.text
                 
-                # Pengurusan Ganjaran Berdasarkan Hasil AI
+                # Pengurusan Ganjaran Gamifikasi
                 st.session_state.questions_solved += 1
                 
                 if "[VERDIK: SEMPURNA]" in output_text:
@@ -218,13 +225,12 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
                     st.session_state.xp += 20
                     st.warning("💪 **JANGAN PUTUS ASA!** Teruskan mencuba. Anda memperoleh **+20 XP** kerana berani mencuba!")
 
-                # Buang tag teknikal verdik sebelum dipaparkan kepada pelajar
+                # Bersihkan tag verdik sebelum paparan pelajar
                 clean_display = output_text.replace("[VERDIK: SEMPURNA]", "").replace("[VERDIK: PEMBAIKAN]", "").replace("[VERDIK: CUBA_LAGI]", "")
                 
                 st.markdown(clean_display)
                 success = True
                 
-                # Butang Galakan Seterusnya
                 st.success("🔥 Teruskan momentum! Sila pilih soalan lain di atas untuk meningkatkan XP dan membuka lebih banyak hadiah!")
                 break
             except Exception as err:
