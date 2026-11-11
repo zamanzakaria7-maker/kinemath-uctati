@@ -3,14 +3,54 @@ from google import genai
 from PIL import Image
 import io
 import time
+import random
 
 # Konfigurasi paparan mesra telefon pintar
 st.set_page_config(page_title="KineMath Remedial - UC TATI", page_icon="📐", layout="centered")
 
+# Inisialisasi Sistem Gamifikasi dalam Session State
+if "xp" not in st.session_state:
+    st.session_state.xp = 0
+if "badges" not in st.session_state:
+    st.session_state.badges = []
+if "questions_solved" not in st.session_state:
+    st.session_state.questions_solved = 0
+
+# Pengiraan Level Pelajar
+def get_level(xp):
+    if xp < 200:
+        return "Level 1: Novis Kinematik 🥉", 200
+    elif xp < 500:
+        return "Level 2: Pakar Gerakan 🥈", 500
+    elif xp < 900:
+        return "Level 3: Jaguh Newton 🥇", 900
+    else:
+        return "Level 4: Master Algebra UC TATI 🎓", 1500
+
+current_level, next_level_xp = get_level(st.session_state.xp)
+
+# Menu Sisi: Profil & Peti Hadiah
+with st.sidebar:
+    st.header("🏆 Profil & Peti Hadiah")
+    st.subheader(current_level)
+    progress = min(st.session_state.xp / next_level_xp, 1.0)
+    st.progress(progress)
+    st.caption(f"Terkumpul: **{st.session_state.xp} XP** / Sasaran Seterusnya: {next_level_xp} XP")
+    st.write(f"Soalan Dihantar: **{st.session_state.questions_solved}**")
+    
+    st.divider()
+    st.write("🎁 **Koleksi Hadiah Anda:**")
+    if st.session_state.badges:
+        for b in set(st.session_state.badges):
+            count = st.session_state.badges.count(b)
+            st.write(f"- {b} x{count}")
+    else:
+        st.caption("Selesaikan latihan untuk kumpul hadiah misteri!")
+
 st.title("📐 KineMath AI Tutor")
 st.caption("Modul Bimbingan Kinematik 1D & Diagnosis Algebra (Diploma UC TATI)")
 
-# Fungsi untuk mengecilkan saiz imej bagi memendekkan masa pemprosesan
+# Fungsi kecilkan saiz imej untuk kepantasan semakan
 def optimize_image(uploaded_file, max_dim=1024):
     image = Image.open(uploaded_file)
     if image.mode in ("RGBA", "P"):
@@ -71,7 +111,7 @@ elif mode == "Jana Soalan Baharu (AI) 🎲":
 else:
     question = st.text_area("Tampal atau Taip Soalan Anda:", value="", placeholder="Tulis soalan fizik di sini...", height=90)
 
-# 3. Fasa Ekstraksi Maklumat (Semua lalai kepada 'Tidak Terlibat')
+# 3. Fasa Ekstraksi Maklumat
 st.subheader("2. Kenal Pasti Parameter (u, v, s, a, t)")
 st.write("Tentukan status bagi setiap kuantiti gerakan:")
 
@@ -136,7 +176,13 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
        - **Status Konsep Fizik:** (Nyatakan sama ada konsep & gantian formula betul)
        - **Diagnosis Ralat Algebra:** (Jika ada ralat, tunjukkan baris mana dan terangkan prinsip matematik yang betul dengan ringkas)
        - **Langkah Pembetulan:** (Tunjukkan langkah penyelesaian algebra yang betul)
+       - **Pesanan Pensyarah:** (Kata-kata motivasi ringkas untuk menggalakkan mereka mencuba soalan lain)
     
+    5. DI HUJUNG MAKLUM BALAS, WAJIB TULIS SATU KOD VERDIK INI DI BARIS TERAKHIR:
+       - Tulis `[VERDIK: SEMPURNA]` jika fizik dan algebra kedua-duanya 100% betul.
+       - Tulis `[VERDIK: PEMBAIKAN]` jika konsep fizik betul tetapi algebra ada silap.
+       - Tulis `[VERDIK: CUBA_LAGI]` jika formula atau konsep fizik salah dari awal.
+
     Gunakan Bahasa Melayu yang mesra, ringkas dan mudah difahami oleh pelajar diploma.
     """
 
@@ -150,9 +196,36 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
                     model=model_name,
                     contents=[prompt, img]
                 )
-                st.success(f"Analisis Selesai! (Model: {model_name})")
-                st.markdown(response.text)
+                output_text = response.text
+                
+                # Pengurusan Ganjaran Berdasarkan Hasil AI
+                st.session_state.questions_solved += 1
+                
+                if "[VERDIK: SEMPURNA]" in output_text:
+                    st.balloons()
+                    st.session_state.xp += 100
+                    gift_list = ["🏆 Piala Newton", "🚀 Roket Kinematik Emas", "⚡ Lencana Kilat Vektor", "⭐ Bintang Cemerlang SPM"]
+                    earned_gift = random.choice(gift_list)
+                    st.session_state.badges.append(earned_gift)
+                    st.success(f"🎉 **SYABAS! JAWAPAN TEPAT!** Anda memperoleh **+100 XP** dan membuka hadiah: **{earned_gift}**!")
+                
+                elif "[VERDIK: PEMBAIKAN]" in output_text:
+                    st.session_state.xp += 40
+                    st.session_state.badges.append("🔧 Lencana Pembaikan Algebra")
+                    st.info("💡 **KONSEP FIZIK ANDA MANTAP!** Cuma ada sedikit ralat algebra. Anda memperoleh **+40 XP** untuk usaha gigih!")
+                
+                else:
+                    st.session_state.xp += 20
+                    st.warning("💪 **JANGAN PUTUS ASA!** Teruskan mencuba. Anda memperoleh **+20 XP** kerana berani mencuba!")
+
+                # Buang tag teknikal verdik sebelum dipaparkan kepada pelajar
+                clean_display = output_text.replace("[VERDIK: SEMPURNA]", "").replace("[VERDIK: PEMBAIKAN]", "").replace("[VERDIK: CUBA_LAGI]", "")
+                
+                st.markdown(clean_display)
                 success = True
+                
+                # Butang Galakan Seterusnya
+                st.success("🔥 Teruskan momentum! Sila pilih soalan lain di atas untuk meningkatkan XP dan membuka lebih banyak hadiah!")
                 break
             except Exception as err:
                 err_msg = str(err).lower()
