@@ -157,14 +157,11 @@ def optimize_image(uploaded_file, max_dim=1024):
     image.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
     # 3. Rawatan Pencahayaan & Ketajaman Tulisan Tangan
-    # a. Auto-kontras: bezakan antara kertas putih dan dakwat/pensel
     image = ImageOps.autocontrast(image, cutoff=1)
 
-    # b. Naikkan kecerahan (Brightness) sebanyak 15% jika pencahayaan bilik malap
     bright_enhancer = ImageEnhance.Brightness(image)
     image = bright_enhancer.enhance(1.15)
 
-    # c. Naikkan ketajaman (Sharpness) supaya tulisan pen/pensel lebih menonjol
     sharp_enhancer = ImageEnhance.Sharpness(image)
     image = sharp_enhancer.enhance(1.3)
 
@@ -224,7 +221,7 @@ def generate_ai_kinematics_question():
     5. FORMAT OUTPUT: Berikan teks soalan SAHAJA dalam Bahasa Melayu. JANGAN sertakan jawapan, formula, jalan kerja, atau tajuk pengenalan.
     """
 
-    candidate_models = ["gemini-2.5-flash", "gemini-2.0-flash"]
+    candidate_models = ["gemini-3.8-flash"]
     for model_name in candidate_models:
         try:
             resp = client.models.generate_content(
@@ -373,10 +370,7 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
     [GRED: A] atau [GRED: B] atau [GRED: C] atau [GRED: D] atau [GRED: E]
     """
 
-    candidate_models = [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-    ]
+    candidate_models = ["gemini-3.8-flash"]
     success = False
     response_placeholder = st.empty()
     full_response = ""
@@ -439,20 +433,3 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
                 st.warning("### 🔍 GRED D (Perlu Usaha Tambahan)\n\n**Jangan berputus asa!** Semak semula gantian nilai ke dalam pembolehubah formula. Teliti di mana kesilapan berlaku pada diagnosis di atas.")
             else:
                 st.error("### 🚀 GRED E (Bina Semula Asas)\n\n**Setiap pakar bermula dari kesilapan.** Ambil masa fahami semula pemilihan formula dan nilai parameter. Cuba soalan baharu di bawah!")
-        else:
-            st.error("Pelayan AI sedang sibuk. Sila tekan butang sekali lagi.")
-
-# 6. Bahagian Menu Langkah Seterusnya
-if st.session_state.last_review:
-    st.divider()
-    st.subheader("🎯 Langkah Seterusnya")
-
-    if st.button("➡️ Cuba Soalan Seterusnya (Dijana AI)", type="primary"):
-        with st.spinner("AI sedang menyediakan soalan seterusnya..."):
-            next_q = generate_ai_kinematics_question()
-            st.session_state.current_question = next_q
-            st.session_state.seen_questions.append(next_q)
-            st.session_state.last_review = None
-            st.session_state.last_grade = None
-            st.session_state.uploader_key += 1
-            st.rerun()
