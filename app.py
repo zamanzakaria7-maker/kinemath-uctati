@@ -81,17 +81,6 @@ KINEMATIC_TIPS = [
     "💡 **Kata Kunci 'Nyahpecutan' / 'Perlahan':** Nilai pecutan wajib bertanda negatif ($a = -\\text{nilai}\\text{ m/s}^2$).",
     "💡 **Kata Kunci 'Halaju Malar / Seragam':** Tiada pecutan ($a = 0\\text{ m/s}^2$). Terus gunakan formula ringkas $s = vt$.",
     
-    "💡 **Tips Pilihan Formula (Tiada $s$):** Jika sesaran tidak dinyatakan atau dicari, gunakan: $v = u + at$",
-    "💡 **Tips Pilihan Formula (Tiada $a$):** Jika tiada maklumat pecutan, gunakan: $s = \\frac{1}{2}(u + v)t$",
-    "💡 **Tips Pilihan Formula (Tiada $v$):** Jika halaju akhir tidak terlibat, gunakan: $s = ut + \\frac{1}{2}at^2$",
-    "💡 **Tips Pilihan Formula (Tiada $t$):** Jika masa tidak dinyatakan atau dicari, gunakan: $v^2 = u^2 + 2as$",
-    "💡 **Perangkap Unit:** Jika soalan memberi kelajuan dalam $\\text{km/j}$, bahagikan dengan $3.6$ untuk tukar ke $\\text{m/s}$ sebelum memasukkan ke dalam rumus.",
-    "💡 **Perangkap Masa:** 'Dalam saat ke-3' bukan $t = 3\\text{ s}$, sebaliknya jarak dalam saat tersebut ialah $\\Delta s = s_3 - s_2$.",
-    "💡 **Masa Tindak Balas:** Semasa tempoh bertindak balas sebelum brek ditekan, kenderaan bergerak dengan halaju malar ($a = 0$).",
-    "💡 **Ketelitian Algebra:** Bila memindahkan kuasa dua ($v^2$), pastikan punca kuasa dua $(\\sqrt{\\dots})$ merangkumi keseluruhan hasil tambah atau tolak di sebelah kanan.",
-    "💡 **Semakan Unit Akhir:** Pastikan unit asas konsisten — halaju ($\\text{m/s}$), pecutan ($\\text{m/s}^2$), masa ($\\text{s}$), dan sesaran ($\\text{m}$).",
-]
-
 # Bank Soalan Dikategorikan Berdasarkan Parameter Yang Dicari (target)
 QUESTION_BANK_CATEGORIZED = [
     {
