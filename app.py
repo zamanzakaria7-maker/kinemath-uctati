@@ -454,7 +454,7 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
                     st.error(f"Ralat ({model_name}): {err}")
                     break
 
-        # 2. HENTIKAN & PADAM TIPS SEBAIK SAHAJA PROSES SEMAKAN SELESAI
+        # 2. Hentikan & padam paparan tips sebaik sahaja proses selesai
         tips_placeholder.empty()
 
         if success:
@@ -472,43 +472,38 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
             st.session_state.last_review = full_response
             st.session_state.last_grade = detected_grade
 
-            # Paparan Kotak Gred & Kata-Kata Semangat Bersesuaian
+            # Paparan Kotak Gred & Kata-Kata Semangat (Rekod kod dikeluarkan dari tajuk)
             st.divider()
             if detected_grade == "A":
                 st.balloons()
                 st.success(
-                    f"### 🌟 GRED A (Cemerlang) — Rekod: `{record_code}`\n\n**Hebat sekali!** Penguasaan konsep fizik dan ketelitian algebra anda bertaraf kelas pertama. Kekalkan momentum cemerlang ini!"
+                    "### 🌟 GRED A (Cemerlang)\n\n**Hebat sekali!** Penguasaan konsep fizik dan ketelitian algebra anda bertaraf kelas pertama. Kekalkan momentum cemerlang ini!"
                 )
             elif detected_grade == "B":
                 st.info(
-                    f"### 👍 GRED B (Sangat Baik) — Rekod: `{record_code}`\n\n**Usaha yang sangat mantap!** Konsep dan jalan kerja utama anda sudah kukuh. Cuma perlu sedikit lebih teliti pada semakan unit atau pengiraan akhir."
+                    "### 👍 GRED B (Sangat Baik)\n\n**Usaha yang sangat mantap!** Konsep dan jalan kerja utama anda sudah kukuh. Cuma perlu sedikit lebih teliti pada semakan unit atau pengiraan akhir."
                 )
             elif detected_grade == "C":
                 st.warning(
-                    f"### 💡 GRED C (Memuaskan) — Rekod: `{record_code}`\n\n**Asas fizik anda sudah betul!** Beri perhatian lebih pada pemindahan simbol dan manipulasi algebra di langkah pertengahan."
+                    "### 💡 GRED C (Memuaskan)\n\n**Asas fizik anda sudah betul!** Beri perhatian lebih pada pemindahan simbol dan manipulasi algebra di langkah pertengahan."
                 )
             elif detected_grade == "D":
                 st.warning(
-                    f"### 🔍 GRED D (Perlu Usaha Tambahan) — Rekod: `{record_code}`\n\n**Jangan berputus asa!** Semak semula gantian nilai ke dalam pembolehubah formula. Teliti di mana kesilapan berlaku pada diagnosis di atas."
+                    "### 🔍 GRED D (Perlu Usaha Tambahan)\n\n**Jangan berputus asa!** Semak semula gantian nilai ke dalam pembolehubah formula. Teliti di mana kesilapan berlaku pada diagnosis di atas."
                 )
             else:
                 st.error(
-                    f"### 🚀 GRED E (Bina Semula Asas) — Rekod: `{record_code}`\n\n**Setiap pakar bermula dari kesilapan.** Ambil masa fahami semula pemilihan formula dan nilai parameter. Cuba soalan baharu di bawah!"
+                    "### 🚀 GRED E (Bina Semula Asas)\n\n**Setiap pakar bermula dari kesilapan.** Ambil masa fahami semula pemilihan formula dan nilai parameter. Cuba soalan baharu di bawah!"
                 )
         else:
             st.error("Pelayan AI sedang sibuk. Sila tekan butang sekali lagi.")
 
-# 6. Bahagian Menu Langkah Seterusnya (Soalan dengan Sasaran Parameter Berbeza)
+# 6. Bahagian Menu Langkah Seterusnya (Bersih tanpa teks rekod/parameter)
 if st.session_state.last_review:
     st.divider()
     st.subheader("🎯 Langkah Seterusnya")
-    st.write(
-        f"Rekod percubaan terkini: **{st.session_state.records[-1] if st.session_state.records else '-'}** | Parameter soalan tadi: **{st.session_state.current_target.upper()}**"
-    )
 
-    if st.button(
-        "➡️ Cuba Soalan Seterusnya (Variasi Parameter Baharu)", type="primary"
-    ):
+    if st.button("➡️ Cuba Soalan Seterusnya (Variasi Parameter Baharu)", type="primary"):
         st.session_state.current_question = get_varied_next_question()
         st.session_state.seen_questions.append(st.session_state.current_question)
         st.session_state.last_review = None
