@@ -102,7 +102,7 @@ elif mode == "Jana Soalan Baharu (AI) 🎲":
         with st.spinner("AI sedang menjana soalan fizik 1D baharu..."):
             gen_prompt = "Hasilkan satu soalan fizik peringkat Diploma topik Kinematik 1 Dimensi (bukan jatuh bebas / bukan graviti). Berikan teks soalan sahaja dalam Bahasa Melayu tanpa jawapan. Pastikan nilai nombor mudah untuk diselesaikan."
             try:
-                gen_resp = client.models.generate_content(model="gemini-2.5-flash", contents=gen_prompt)
+                gen_resp = client.models.generate_content(model="gemini-3.8-flash", contents=gen_prompt)
                 st.session_state.current_question = gen_resp.text.strip()
             except Exception:
                 st.session_state.current_question = "Sebuah bas bergerak dari halaju 12 m/s memecut pada 1.5 m/s² selama 8 saat. Cari jarak yang dilalui."
@@ -162,7 +162,6 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
     with st.spinner("Memproses gambar..."):
         img = optimize_image(image_file)
     
-    # Prompt ringkas & terus ke punca masalah untuk jimat masa pemprosesan
     prompt = f"""
     Anda pensyarah Fizik & Matematik UC TATI. Semak gambar jalan kerja tulisan tangan pelajar ini secara ringkas, padat dan segera.
 
@@ -182,7 +181,7 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
     - `[VERDIK: CUBA_LAGI]` jika formula atau konsep salah.
     """
 
-    candidate_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    candidate_models = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
     success = False
 
     response_placeholder = st.empty()
@@ -191,7 +190,7 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
     with st.spinner("AI sedang menganalisis secara langsung..."):
         for model_name in candidate_models:
             try:
-                # Streaming untuk maklum balas pantas (muncul dalam 1-2 saat)
+                # Streaming dengan Gemini 3.8 Flash untuk maklum balas ultra-pantas
                 response_stream = client.models.generate_content_stream(
                     model=model_name,
                     contents=[prompt, img]
@@ -207,11 +206,11 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
                 break
             except Exception as err:
                 err_msg = str(err).lower()
-                if "503" in err_msg or "unavailable" in err_msg or "high demand" in err_msg:
+                if "503" in err_msg or "unavailable" in err_msg or "high demand" in err_msg or "not found" in err_msg:
                     time.sleep(1)
                     continue
                 else:
-                    st.error(f"Ralat: {err}")
+                    st.error(f"Ralat ({model_name}): {err}")
                     break
 
         if success:
