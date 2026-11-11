@@ -2,7 +2,7 @@ import io
 import random
 import time
 from google import genai
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageOps
 import streamlit as st
 
 # Konfigurasi paparan mesra telefon pintar
@@ -83,7 +83,7 @@ KINEMATIC_TIPS = [
     "💡 **Kata Kunci 'Berpatah Balik':** Pada detik objek berpatah balik, halajunya menjadi sifar seketika ($v = 0\\text{ m/s}$).",
 ]
 
-# Bank Sandaran Sahaja (Hanya digunakan jika sambungan AI gagal)
+# Bank Sandaran Sahaja (Hanya diguna jika sambungan AI terputus)
 FALLBACK_QUESTIONS = [
     {"target": "s", "text": "Sebuah kereta bermula dari keadaan pegun dan memecut secara seragam pada kadar 3 m/s² selama 4 saat. Hitungkan sesaran kereta tersebut."},
     {"target": "t", "text": "Sebuah motosikal bergerak dengan halaju 25 m/s kemudian membrek dengan nyahpecutan seragam 5 m/s² sehingga berhenti. Berapakah masa yang diambil untuk motosikal itu berhenti sepenuhnya?"},
@@ -136,13 +136,41 @@ with st.sidebar:
 st.title("📐 KineMath AI Tutor")
 st.caption("Modul Bimbingan Kinematik 1D & Diagnosis Algebra (Diploma UC TATI)")
 
-def optimize_image(uploaded_file, max_dim=768):
+# FUNGSI RAWATAN & PENGOPTIMUMAN GAMBAR
+def optimize_image(uploaded_file, max_dim=1024):
+    """
+    1. Membaca gambar daripada pelbagai peranti & format.
+    2. Membetulkan orientasi EXIF telefon (elak gambar terbalik/senget).
+    3. Mengecilkan dimensi ke saiz optimum untuk diproses oleh AI.
+    4. Auto-Enhance: Mencerahkan kawasan gelap dan menaikkan kontras tulisan tangan.
+    5. Menghasilkan fail JPEG yang ringan (~100KB-300KB) tetapi sangat jelas.
+    """
     image = Image.open(uploaded_file)
+
+    # 1. Betulkan orientasi EXIF (elak gambar senget semasa diambil guna kamera telefon)
+    image = ImageOps.exif_transpose(image)
+
     if image.mode in ("RGBA", "P"):
         image = image.convert("RGB")
-    image.thumbnail((max_dim, max_dim), Image.Resampling.BILINEAR)
+
+    # 2. Kurangkan dimensi agar tidak melebihi saiz maksimum
+    image.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+
+    # 3. Rawatan Pencahayaan & Ketajaman Tulisan Tangan
+    # a. Auto-kontras: bezakan antara kertas putih dan dakwat/pensel
+    image = ImageOps.autocontrast(image, cutoff=1)
+
+    # b. Naikkan kecerahan (Brightness) sebanyak 15% jika pencahayaan bilik malap
+    bright_enhancer = ImageEnhance.Brightness(image)
+    image = bright_enhancer.enhance(1.15)
+
+    # c. Naikkan ketajaman (Sharpness) supaya tulisan pen/pensel lebih menonjol
+    sharp_enhancer = ImageEnhance.Sharpness(image)
+    image = sharp_enhancer.enhance(1.3)
+
+    # 4. Simpan ke penimbal dengan mampatan JPEG berkualiti seimbang
     buffer = io.BytesIO()
-    image.save(buffer, format="JPEG", quality=70, optimize=False)
+    image.save(buffer, format="JPEG", quality=80, optimize=True)
     buffer.seek(0)
     return Image.open(buffer)
 
@@ -175,10 +203,10 @@ def generate_ai_kinematics_question():
     scenarios = [
         "kereta api elektrik memecut keluar dari stesen",
         "kereta lumba membrek sebelum selekoh tajam",
-        "dron penghantar barang bergerak meluncur di atas trek lurus",
-        "atlet larian pecut 100m memecut dari blok permulaan",
+        "dron penghantar barang meluncur di atas trek lurus",
+        "pelari pecut 100m memecut dari blok permulaan",
         "bot laju memperlahankan kelajuan menghampiri jeti",
-        "kenderaan autonomi mengesan halangan dan berhenti kecemasan",
+        "kenderaan elektrik mengesan halangan dan berhenti kecemasan",
         "kren kontena menarik beban di atas landasan mendatar",
         "motosikal memotong kenderaan di lebuh raya"
     ]
@@ -191,12 +219,12 @@ def generate_ai_kinematics_question():
     PANDUAN PEMBINAAN SOALAN:
     1. Konteks/Senario: {chosen_scenario}.
     2. SASARAN WAJIB: Soalan mesti menghendaki pelajar mengira {param_names[chosen_target]} sebagai jawapan akhir.
-    3. Nyatakan nilai-nilai parameter lain secara jelas dan berikan angka yang logik, bersih, serta mudah dikira (contoh: nombor bulat atau perpuluhan mudah).
+    3. Nyatakan nilai-nilai parameter lain secara jelas dan berikan angka yang logik serta mudah dikira (nombor bulat atau perpuluhan mudah).
     4. Pastikan ayat soalan UNIK dan berbeza daripada soalan lepas: [{past_summary}].
     5. FORMAT OUTPUT: Berikan teks soalan SAHAJA dalam Bahasa Melayu. JANGAN sertakan jawapan, formula, jalan kerja, atau tajuk pengenalan.
     """
 
-    candidate_models = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
+    candidate_models = ["gemini-2.5-flash", "gemini-2.0-flash"]
     for model_name in candidate_models:
         try:
             resp = client.models.generate_content(
@@ -210,7 +238,7 @@ def generate_ai_kinematics_question():
         except Exception:
             continue
 
-    # Sandaran kecemasan jika semua panggilan model gagal
+    # Sandaran jika panggilan model terputus
     fallback = [item for item in FALLBACK_QUESTIONS if item["target"] != current_target]
     chosen_fb = random.choice(fallback)
     st.session_state.current_target = chosen_fb["target"]
@@ -285,25 +313,29 @@ st.subheader("4. Selesaikan & Semak Algebra")
 pilihan_kamera = st.radio(
     "Kaedah Ambil Gambar:",
     [
-        "📱 Buka Kamera Telefon / Muat Naik Fail (Paling Mudah)",
-        "📷 Kamera Web Pelayar (Streamlit)",
+        "📁 Pilih dari Galeri / Fail Telefon (Paling Stabil)",
+        "📷 Kamera Web Pelayar (Sesuai untuk Telefon & Laptop)",
     ],
     horizontal=True,
 )
 
 image_file = None
-if pilihan_kamera == "📱 Buka Kamera Telefon / Muat Naik Fail (Paling Mudah)":
-    st.caption("💡 *Tips:* Klik butang di bawah dan pilih kamera telefon untuk terus menangkap gambar tulisan tangan.")
+if pilihan_kamera == "📁 Pilih dari Galeri / Fail Telefon (Paling Stabil)":
+    st.caption("💡 **Tips Telefon:** Ambil gambar kertas jawapan menggunakan kamera biasa telefon terlebih dahulu, kemudian klik butang di bawah dan pilih daripada Galeri / Fail.")
     image_file = st.file_uploader(
-        "Pilih Fail / Buka Kamera",
-        type=["jpg", "jpeg", "png"],
+        "Pilih Fail / Gambar Kertas Jawapan:",
+        type=None,  # Dibiarkan None agar format HEIC (iPhone) atau JPEG tidak disekat
         key=f"file_up_{st.session_state.uploader_key}",
     )
 else:
+    st.caption("💡 **Auto-Pencahayaan:** Gambar akan dicerahkan dan ditajamkan kontrasnya secara automatik sekiranya bilik malap.")
     image_file = st.camera_input(
-        "Ambil gambar kertas jawapan",
+        "Ambil gambar kertas jawapan sekarang",
         key=f"cam_up_{st.session_state.uploader_key}",
     )
+
+if image_file:
+    st.success("✓ Gambar sedia untuk disemak.")
 
 # Butang Semakan & Penilaian Gred
 if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
@@ -314,7 +346,7 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
         unsafe_allow_html=True,
     )
 
-    with st.spinner("Memproses gambar jawapan..."):
+    with st.spinner("Mencerahkan & memproses gambar jawapan..."):
         img = optimize_image(image_file)
 
     prompt = f"""
@@ -342,9 +374,8 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
     """
 
     candidate_models = [
-        "gemini-3.8-flash",
-        "gemini-3.6-flash",
-        "gemini-3.5-flash-lite",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
     ]
     success = False
     response_placeholder = st.empty()
