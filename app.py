@@ -8,6 +8,36 @@ import random
 # Konfigurasi paparan mesra telefon pintar
 st.set_page_config(page_title="KineMath Remedial - UC TATI", page_icon="📐", layout="centered")
 
+# --- SUNTIKAN CSS: TUKAR WARNA PILIHAN JADI BIRU (PERKARA 2 & 3) ---
+st.markdown("""
+<style>
+/* Tukar warna border dan teks bagi parameter & formula yang dipilih kepada BIRU */
+div[data-testid="stSelectbox"] div[data-baseweb="select"] {
+    border: 1.8px solid #1E88E5 !important;
+    border-radius: 8px !important;
+    background-color: #f0f7ff !important;
+}
+
+div[data-testid="stSelectbox"] div[data-baseweb="select"] * {
+    color: #0d47a1 !important;
+    font-weight: 700 !important;
+}
+
+/* Gaya badge pilihan berwarna biru lembut */
+.blue-badge {
+    display: inline-block;
+    background-color: #e3f2fd;
+    color: #1565c0;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin: 2px 4px;
+    border: 1px solid #90caf9;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Inisialisasi Session State
 if "xp" not in st.session_state:
     st.session_state.xp = 0
@@ -33,7 +63,6 @@ QUESTION_BANK = [
     "Sebuah skuter elektrik bergerak dengan kelajuan 16 m/s dan mengalami nyahpecutan 2 m/s² sehingga berhenti. Berapakah sesaran yang dilalui sebelum ia berhenti?"
 ]
 
-# Set soalan pertama jika belum ada
 if "current_question" not in st.session_state:
     st.session_state.current_question = QUESTION_BANK[0]
 
@@ -71,7 +100,7 @@ with st.sidebar:
 st.title("📐 KineMath AI Tutor")
 st.caption("Modul Bimbingan Kinematik 1D & Diagnosis Algebra (Diploma UC TATI)")
 
-# Fungsi kecilkan gambar ultra-pantas (768px, 70% JPEG)
+# Fungsi kecilkan saiz imej ultra-pantas (768px, kualiti 70%)
 def optimize_image(uploaded_file, max_dim=768):
     image = Image.open(uploaded_file)
     if image.mode in ("RGBA", "P"):
@@ -94,14 +123,12 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# Fungsi Dapatkan Soalan Seterusnya (Sentiasa Unik)
+# Fungsi Dapatkan Soalan Unik Seterusnya
 def get_unique_next_question():
-    # Cari baki soalan daripada bank yang belum dicuba
     unseen = [q for q in QUESTION_BANK if q not in st.session_state.seen_questions]
     if unseen:
         return random.choice(unseen)
     
-    # Jika semua soalan bank telah selesai, jana soalan baharu melalui AI
     try:
         past_q_summary = "; ".join(st.session_state.seen_questions[-4:])
         gen_prompt = f"""
@@ -117,7 +144,6 @@ def get_unique_next_question():
     except Exception:
         pass
     
-    # Sandaran jika gagal panggil AI
     return random.choice(QUESTION_BANK)
 
 # 2. Bahagian Paparan Soalan
@@ -137,9 +163,9 @@ with col_src2:
         edited_q = st.text_area("Tulis soalan anda:", value=st.session_state.current_question, height=70)
         st.session_state.current_question = edited_q
 
-# 3. Fasa Ekstraksi Maklumat
+# 3. Fasa Ekstraksi Maklumat (Perkara 2 - Dengan Visual Biru)
 st.subheader("2. Kenal Pasti Parameter (u, v, s, a, t)")
-st.write("Tentukan status bagi setiap kuantiti gerakan:")
+st.caption("Pilihan yang aktif akan diwarnakan dengan :blue[**warna biru**]:")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -150,7 +176,22 @@ with col2:
     a_status = st.selectbox("Pecutan (a):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
     t_status = st.selectbox("Masa (t):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
 
-# 4. Fasa Pemilihan Formula
+# Paparan Pengesahan Pilihan Parameter (Warna Biru)
+st.markdown(
+    f"""
+    <div style="background-color: #f0f7ff; padding: 8px 12px; border-radius: 8px; border-left: 4px solid #1E88E5; margin-top: 5px;">
+        <span style="font-size: 0.85rem; color: #555;">Pilihan Semasa:</span><br>
+        <span class="blue-badge">u: <b>{u_status}</b></span>
+        <span class="blue-badge">v: <b>{v_status}</b></span>
+        <span class="blue-badge">s: <b>{s_status}</b></span>
+        <span class="blue-badge">a: <b>{a_status}</b></span>
+        <span class="blue-badge">t: <b>{t_status}</b></span>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
+
+# 4. Fasa Pemilihan Formula (Perkara 3 - Dengan Visual Biru)
 st.subheader("3. Pilih Persamaan Kinematik")
 equation_options = [
     "-- Pilih Persamaan --",
@@ -161,7 +202,19 @@ equation_options = [
 ]
 selected_eq = st.selectbox("Persamaan yang paling sesuai:", equation_options)
 
-# 5. Fasa Muat Naik / Tangkap Gambar
+# Paparan Pengesahan Formula Dipilih (Warna Biru)
+if selected_eq != "-- Pilih Persamaan --":
+    st.markdown(
+        f"""
+        <div style="background-color: #f0f7ff; padding: 8px 12px; border-radius: 8px; border-left: 4px solid #1E88E5; margin-top: 5px;">
+            <span style="font-size: 0.85rem; color: #555;">Formula Dipilih:</span> 
+            <span class="blue-badge" style="font-size: 0.95rem;">📐 <b>{selected_eq}</b></span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# 5. Fasa Muat Naik / Tangkap Gambar Jalan Kerja
 st.subheader("4. Selesaikan & Semak Algebra")
 pilihan_kamera = st.radio(
     "Kaedah Ambil Gambar:",
@@ -170,7 +223,6 @@ pilihan_kamera = st.radio(
 )
 
 image_file = None
-# Kunci unik (uploader_key) membolehkan gambar direset secara automatik bila masuk soalan baharu
 if pilihan_kamera == "📱 Buka Kamera Telefon / Muat Naik Fail (Paling Mudah)":
     st.caption("💡 *Tips Telefon:* Tekan kotak di bawah dan pilih **Camera** untuk terus menggunakan kamera belakang.")
     image_file = st.file_uploader("Pilih Fail / Buka Kamera", type=["jpg", "jpeg", "png"], key=f"file_up_{st.session_state.uploader_key}")
@@ -232,11 +284,9 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
                     break
 
         if success:
-            # Simpan ulasan dalam session state
             st.session_state.last_review = full_response
             st.session_state.questions_solved += 1
             
-            # Rekod soalan ini supaya tidak berulang lagi
             if st.session_state.current_question not in st.session_state.seen_questions:
                 st.session_state.seen_questions.append(st.session_state.current_question)
 
@@ -258,16 +308,14 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
         else:
             st.error("Pelayan AI sedang sibuk. Sila tekan butang sekali lagi.")
 
-# 6. Bahagian Menu & Butang Soalan Seterusnya (Muncul selepas semakan dibuat)
+# 6. Bahagian Menu & Butang Soalan Seterusnya
 if st.session_state.last_review:
     st.divider()
     st.subheader("🎯 Langkah Seterusnya")
     st.write(f"Tahniah! Anda telah melengkapkan latihan ini. Rekod soalan yang telah dicuba: **{len(st.session_state.seen_questions)}**")
     
     if st.button("➡️ Cuba Soalan Seterusnya (Soalan Baharu)", type="primary"):
-        # Pilih soalan unik seterusnya
         st.session_state.current_question = get_unique_next_question()
-        # Kosongkan ulasan lama & tukar key uploader untuk buang gambar lama
         st.session_state.last_review = None
         st.session_state.uploader_key += 1
         st.rerun()
