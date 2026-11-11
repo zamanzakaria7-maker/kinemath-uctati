@@ -8,10 +8,10 @@ import random
 # Konfigurasi paparan mesra telefon pintar
 st.set_page_config(page_title="KineMath Remedial - UC TATI", page_icon="📐", layout="centered")
 
-# --- SUNTIKAN CSS: TUKAR WARNA PILIHAN JADI BIRU (PERKARA 2 & 3) ---
+# --- SUNTIKAN CSS: KOTAK & LABEL PILIHAN BERWARNA BIRU ---
 st.markdown("""
 <style>
-/* Tukar warna border dan teks bagi parameter & formula yang dipilih kepada BIRU */
+/* Kotak pilihan (Selectbox) border & teks biru */
 div[data-testid="stSelectbox"] div[data-baseweb="select"] {
     border: 1.8px solid #1E88E5 !important;
     border-radius: 8px !important;
@@ -23,16 +23,17 @@ div[data-testid="stSelectbox"] div[data-baseweb="select"] * {
     font-weight: 700 !important;
 }
 
-/* Gaya badge pilihan berwarna biru lembut */
-.blue-badge {
-    display: inline-block;
+/* Lencana Biru di bawah setiap pilihan dropdown */
+.blue-param-indicator {
     background-color: #e3f2fd;
-    color: #1565c0;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 0.88rem;
+    color: #0d47a1;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.82rem;
     font-weight: 600;
-    margin: 2px 4px;
+    margin-top: -8px;
+    margin-bottom: 12px;
+    display: inline-block;
     border: 1px solid #90caf9;
 }
 </style>
@@ -100,7 +101,7 @@ with st.sidebar:
 st.title("📐 KineMath AI Tutor")
 st.caption("Modul Bimbingan Kinematik 1D & Diagnosis Algebra (Diploma UC TATI)")
 
-# Fungsi kecilkan saiz imej ultra-pantas (768px, kualiti 70%)
+# Fungsi kecilkan imej ultra-pantas (768px, 70% JPEG)
 def optimize_image(uploaded_file, max_dim=768):
     image = Image.open(uploaded_file)
     if image.mode in ("RGBA", "P"):
@@ -163,35 +164,29 @@ with col_src2:
         edited_q = st.text_area("Tulis soalan anda:", value=st.session_state.current_question, height=70)
         st.session_state.current_question = edited_q
 
-# 3. Fasa Ekstraksi Maklumat (Perkara 2 - Dengan Visual Biru)
+# 3. Fasa Ekstraksi Maklumat (Perkara 2 - Pilihan Muncul Tepat di Bawah Dropdown Masing-Masing)
 st.subheader("2. Kenal Pasti Parameter (u, v, s, a, t)")
-st.caption("Pilihan yang aktif akan diwarnakan dengan :blue[**warna biru**]:")
+st.write("Tentukan status bagi setiap kuantiti gerakan:")
 
 col1, col2 = st.columns(2)
 with col1:
     u_status = st.selectbox("Halaju Awal (u):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
+    st.markdown(f"<div class='blue-param-indicator'>✓ Status u: <b>{u_status}</b></div>", unsafe_allow_html=True)
+    
     v_status = st.selectbox("Halaju Akhir (v):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
+    st.markdown(f"<div class='blue-param-indicator'>✓ Status v: <b>{v_status}</b></div>", unsafe_allow_html=True)
+    
     s_status = st.selectbox("Sesaran (s):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
+    st.markdown(f"<div class='blue-param-indicator'>✓ Status s: <b>{s_status}</b></div>", unsafe_allow_html=True)
+
 with col2:
     a_status = st.selectbox("Pecutan (a):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
+    st.markdown(f"<div class='blue-param-indicator'>✓ Status a: <b>{a_status}</b></div>", unsafe_allow_html=True)
+    
     t_status = st.selectbox("Masa (t):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
+    st.markdown(f"<div class='blue-param-indicator'>✓ Status t: <b>{t_status}</b></div>", unsafe_allow_html=True)
 
-# Paparan Pengesahan Pilihan Parameter (Warna Biru)
-st.markdown(
-    f"""
-    <div style="background-color: #f0f7ff; padding: 8px 12px; border-radius: 8px; border-left: 4px solid #1E88E5; margin-top: 5px;">
-        <span style="font-size: 0.85rem; color: #555;">Pilihan Semasa:</span><br>
-        <span class="blue-badge">u: <b>{u_status}</b></span>
-        <span class="blue-badge">v: <b>{v_status}</b></span>
-        <span class="blue-badge">s: <b>{s_status}</b></span>
-        <span class="blue-badge">a: <b>{a_status}</b></span>
-        <span class="blue-badge">t: <b>{t_status}</b></span>
-    </div>
-    """, 
-    unsafe_allow_html=True
-)
-
-# 4. Fasa Pemilihan Formula (Perkara 3 - Dengan Visual Biru)
+# 4. Fasa Pemilihan Formula (Perkara 3 - Pilihan Muncul di Bawah Formula)
 st.subheader("3. Pilih Persamaan Kinematik")
 equation_options = [
     "-- Pilih Persamaan --",
@@ -202,17 +197,8 @@ equation_options = [
 ]
 selected_eq = st.selectbox("Persamaan yang paling sesuai:", equation_options)
 
-# Paparan Pengesahan Formula Dipilih (Warna Biru)
 if selected_eq != "-- Pilih Persamaan --":
-    st.markdown(
-        f"""
-        <div style="background-color: #f0f7ff; padding: 8px 12px; border-radius: 8px; border-left: 4px solid #1E88E5; margin-top: 5px;">
-            <span style="font-size: 0.85rem; color: #555;">Formula Dipilih:</span> 
-            <span class="blue-badge" style="font-size: 0.95rem;">📐 <b>{selected_eq}</b></span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown(f"<div class='blue-param-indicator'>✓ Formula Dipilih: <b>{selected_eq}</b></div>", unsafe_allow_html=True)
 
 # 5. Fasa Muat Naik / Tangkap Gambar Jalan Kerja
 st.subheader("4. Selesaikan & Semak Algebra")
