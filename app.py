@@ -8,7 +8,7 @@ st.set_page_config(page_title="KineMath Remedial - UC TATI", page_icon="📐", l
 st.title("📐 KineMath AI Tutor")
 st.caption("Modul Bimbingan Kinematik 1D & Diagnosis Algebra (Diploma UC TATI)")
 
-# 1. Tetapan API Key (Boleh diisi terus atau melalui Streamlit Secrets)
+# 1. Tetapan API Key (Melalui Streamlit Secrets atau input manual)
 api_key = st.secrets.get("GEMINI_API_KEY", None)
 if not api_key:
     api_key = st.sidebar.text_input("Masukkan Google Gemini API Key:", type="password")
@@ -52,7 +52,6 @@ selected_eq = st.selectbox("Persamaan yang paling sesuai:", equation_options)
 st.subheader("4. Selesaikan & Semak Algebra")
 st.write("Selesaikan jalan kerja di atas kertas, kemudian ambil gambar:")
 
-# Menggunakan widget kamera telefon atau muat naik imej
 source = st.radio("Pilihan input gambar:", ["Guna Kamera Telefon", "Muat Naik Fail"], horizontal=True)
 
 image_file = None
@@ -65,7 +64,6 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
     img = Image.open(image_file)
     
     with st.spinner("AI sedang membaca tulisan tangan dan menyemak operasi algebra..."):
-        # Prompt diagnostik yang direka khas untuk pelajar lemah matematik
         prompt = f"""
         Anda adalah pensyarah Fizik dan Matematik perintis di UC TATI. 
         Tugasan anda adalah mendiagnosis jalan kerja tulisan tangan pelajar ini secara empati dan konstruktif.
@@ -93,7 +91,7 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
 
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.8-flash",
                 contents=[prompt, img]
             )
             st.success("Analisis Selesai!")
