@@ -50,15 +50,15 @@ with st.sidebar:
 st.title("📐 KineMath AI Tutor")
 st.caption("Modul Bimbingan Kinematik 1D & Diagnosis Algebra (Diploma UC TATI)")
 
-# Fungsi kecilkan saiz imej untuk kepantasan semakan
-def optimize_image(uploaded_file, max_dim=1024):
+# Fungsi kecilkan saiz imej ultra-pantas (768px, kualiti 70%)
+def optimize_image(uploaded_file, max_dim=768):
     image = Image.open(uploaded_file)
     if image.mode in ("RGBA", "P"):
         image = image.convert("RGB")
-    image.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+    image.thumbnail((max_dim, max_dim), Image.Resampling.BILINEAR)
     
     buffer = io.BytesIO()
-    image.save(buffer, format="JPEG", quality=80, optimize=True)
+    image.save(buffer, format="JPEG", quality=70, optimize=False)
     buffer.seek(0)
     return Image.open(buffer)
 
@@ -102,7 +102,7 @@ elif mode == "Jana Soalan Baharu (AI) 🎲":
         with st.spinner("AI sedang menjana soalan fizik 1D baharu..."):
             gen_prompt = "Hasilkan satu soalan fizik peringkat Diploma topik Kinematik 1 Dimensi (bukan jatuh bebas / bukan graviti). Berikan teks soalan sahaja dalam Bahasa Melayu tanpa jawapan. Pastikan nilai nombor mudah untuk diselesaikan."
             try:
-                gen_resp = client.models.generate_content(model="gemini-3.8-flash", contents=gen_prompt)
+                gen_resp = client.models.generate_content(model="gemini-2.5-flash", contents=gen_prompt)
                 st.session_state.current_question = gen_resp.text.strip()
             except Exception:
                 st.session_state.current_question = "Sebuah bas bergerak dari halaju 12 m/s memecut pada 1.5 m/s² selama 8 saat. Cari jarak yang dilalui."
@@ -159,88 +159,82 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
         st.warning("Sila pastikan teks soalan diisi terlebih dahulu.")
         st.stop()
 
-    with st.spinner("Sedang mengoptimumkan saiz gambar..."):
+    with st.spinner("Memproses gambar..."):
         img = optimize_image(image_file)
     
+    # Prompt ringkas & terus ke punca masalah untuk jimat masa pemprosesan
     prompt = f"""
-    Anda adalah pensyarah Fizik dan Matematik perintis di UC TATI. 
-    Tugasan anda adalah mendiagnosis jalan kerja tulisan tangan pelajar ini secara empati, padat dan konstruktif.
+    Anda pensyarah Fizik & Matematik UC TATI. Semak gambar jalan kerja tulisan tangan pelajar ini secara ringkas, padat dan segera.
 
-    Konteks Masalah:
+    Konteks:
     - Soalan: {question}
-    - Parameter yang dipilih pelajar: u={u_status}, v={v_status}, s={s_status}, a={a_status}, t={t_status}
-    - Formula yang dipilih pelajar: {selected_eq}
+    - Parameter: u={u_status}, v={v_status}, s={s_status}, a={a_status}, t={t_status}
+    - Formula: {selected_eq}
 
-    Tugasan Semakan:
-    1. Teliti gambar jalan kerja bertulis pelajar yang dilampirkan.
-    2. Tentukan sama ada formula fizik yang ditulis dan gantian nombor awal adalah tepat.
-    3. Semak setiap baris operasi algebra:
-       - Adakah berlaku kesalahan tanda (+/-)?
-       - Adakah berlaku kesalahan pemindahan sebutan (transposition)?
-       - Adakah pembahagian/pendaraban pecahan betul?
-       - Adakah operasi punca kuasa atau kuasa dua betul?
-    4. Berikan maklum balas berstruktur:
-       - **Status Konsep Fizik:** (Nyatakan sama ada konsep & gantian formula betul)
-       - **Diagnosis Ralat Algebra:** (Jika ada ralat, tunjukkan baris mana dan terangkan prinsip matematik yang betul dengan ringkas)
-       - **Langkah Pembetulan:** (Tunjukkan langkah penyelesaian algebra yang betul)
-       - **Pesanan Pensyarah:** (Kata-kata motivasi ringkas untuk menggalakkan mereka mencuba soalan lain)
+    Format Ulasan Ringkas (Maksimum 2 ayat setiap seksyen):
+    1. **Status Konsep Fizik:** (Adakah formula & gantian nombor tepat?)
+    2. **Diagnosis Ralat Algebra:** (Nyatakan baris ralat tanda/pindah/pecahan/kuasa jika ada, atau puji jika betul)
+    3. **Langkah Betul:** (Tunjukkan jalan pembetulan ringkas)
     
-    5. DI HUJUNG MAKLUM BALAS, WAJIB TULIS SATU KOD VERDIK INI DI BARIS TERAKHIR:
-       - Tulis `[VERDIK: SEMPURNA]` jika fizik dan algebra kedua-duanya 100% betul.
-       - Tulis `[VERDIK: PEMBAIKAN]` jika konsep fizik betul tetapi algebra ada silap.
-       - Tulis `[VERDIK: CUBA_LAGI]` jika formula atau konsep fizik salah dari awal.
-
-    Gunakan Bahasa Melayu yang mesra, ringkas dan mudah difahami oleh pelajar diploma.
+    Wajib tulis kod verdik ini di baris paling akhir:
+    - `[VERDIK: SEMPURNA]` jika semua 100% betul.
+    - `[VERDIK: PEMBAIKAN]` jika fizik betul tetapi ada silap algebra.
+    - `[VERDIK: CUBA_LAGI]` jika formula atau konsep salah.
     """
 
-    candidate_models = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
+    candidate_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
     success = False
 
-    with st.spinner("AI sedang membaca tulisan tangan dan menyemak algebra..."):
+    response_placeholder = st.empty()
+    full_response = ""
+
+    with st.spinner("AI sedang menganalisis secara langsung..."):
         for model_name in candidate_models:
             try:
-                response = client.models.generate_content(
+                # Streaming untuk maklum balas pantas (muncul dalam 1-2 saat)
+                response_stream = client.models.generate_content_stream(
                     model=model_name,
                     contents=[prompt, img]
                 )
-                output_text = response.text
                 
-                # Pengurusan Ganjaran Gamifikasi
-                st.session_state.questions_solved += 1
+                for chunk in response_stream:
+                    if chunk.text:
+                        full_response += chunk.text
+                        display_live = full_response.replace("[VERDIK: SEMPURNA]", "").replace("[VERDIK: PEMBAIKAN]", "").replace("[VERDIK: CUBA_LAGI]", "")
+                        response_placeholder.markdown(display_live)
                 
-                if "[VERDIK: SEMPURNA]" in output_text:
-                    st.balloons()
-                    st.session_state.xp += 100
-                    gift_list = ["🏆 Piala Newton", "🚀 Roket Kinematik Emas", "⚡ Lencana Kilat Vektor", "⭐ Bintang Cemerlang SPM"]
-                    earned_gift = random.choice(gift_list)
-                    st.session_state.badges.append(earned_gift)
-                    st.success(f"🎉 **SYABAS! JAWAPAN TEPAT!** Anda memperoleh **+100 XP** dan membuka hadiah: **{earned_gift}**!")
-                
-                elif "[VERDIK: PEMBAIKAN]" in output_text:
-                    st.session_state.xp += 40
-                    st.session_state.badges.append("🔧 Lencana Pembaikan Algebra")
-                    st.info("💡 **KONSEP FIZIK ANDA MANTAP!** Cuma ada sedikit ralat algebra. Anda memperoleh **+40 XP** untuk usaha gigih!")
-                
-                else:
-                    st.session_state.xp += 20
-                    st.warning("💪 **JANGAN PUTUS ASA!** Teruskan mencuba. Anda memperoleh **+20 XP** kerana berani mencuba!")
-
-                # Bersihkan tag verdik sebelum paparan pelajar
-                clean_display = output_text.replace("[VERDIK: SEMPURNA]", "").replace("[VERDIK: PEMBAIKAN]", "").replace("[VERDIK: CUBA_LAGI]", "")
-                
-                st.markdown(clean_display)
                 success = True
-                
-                st.success("🔥 Teruskan momentum! Sila pilih soalan lain di atas untuk meningkatkan XP dan membuka lebih banyak hadiah!")
                 break
             except Exception as err:
                 err_msg = str(err).lower()
                 if "503" in err_msg or "unavailable" in err_msg or "high demand" in err_msg:
-                    time.sleep(1.5)
+                    time.sleep(1)
                     continue
                 else:
                     st.error(f"Ralat: {err}")
                     break
 
-        if not success:
-            st.error("Pelayan AI sedang sibuk. Sila tekan butang semak sekali lagi.")
+        if success:
+            st.session_state.questions_solved += 1
+            
+            # Ganjaran Gamifikasi
+            if "[VERDIK: SEMPURNA]" in full_response:
+                st.balloons()
+                st.session_state.xp += 100
+                gift_list = ["🏆 Piala Newton", "🚀 Roket Kinematik Emas", "⚡ Lencana Kilat Vektor", "⭐ Bintang Cemerlang SPM"]
+                earned_gift = random.choice(gift_list)
+                st.session_state.badges.append(earned_gift)
+                st.success(f"🎉 **SYABAS! JAWAPAN TEPAT!** (+100 XP) | Hadiah Terbuka: **{earned_gift}**!")
+            
+            elif "[VERDIK: PEMBAIKAN]" in full_response:
+                st.session_state.xp += 40
+                st.session_state.badges.append("🔧 Lencana Pembaikan Algebra")
+                st.info("💡 **KONSEP FIZIK MANTAP!** (+40 XP) Cuma ada sedikit ralat algebra.")
+            
+            else:
+                st.session_state.xp += 20
+                st.warning("💪 **JANGAN PUTUS ASA!** (+20 XP) Teruskan mencuba soalan lain!")
+
+            st.success("🔥 Teruskan momentum! Sila cuba soalan seterusnya di atas.")
+        else:
+            st.error("Pelayan AI sedang sibuk. Sila tekan butang sekali lagi.")
