@@ -74,13 +74,13 @@ div[data-testid="stSelectbox"] div[data-baseweb="select"] * {
     unsafe_allow_html=True,
 )
 
-# Senarai Lengkap Tip & Kata Kunci Rahsia Kinematik Linear
+# Senarai Tip Kata Kunci Rahsia Kinematik Linear Sahaja
 KINEMATIC_TIPS = [
     "💡 **Kata Kunci 'Pegun' / 'Bermula dari rehat':** Halaju awal adalah sifar ($u = 0\\text{ m/s}$).",
     "💡 **Kata Kunci 'Berhenti' / 'Membrek hingga pegun':** Halaju akhir adalah sifar ($v = 0\\text{ m/s}$).",
     "💡 **Kata Kunci 'Nyahpecutan' / 'Perlahan':** Nilai pecutan wajib bertanda negatif ($a = -\\text{nilai}\\text{ m/s}^2$).",
     "💡 **Kata Kunci 'Halaju Malar / Seragam':** Tiada pecutan ($a = 0\\text{ m/s}^2$). Terus gunakan formula ringkas $s = vt$.",
-    
+    "💡 **Kata Kunci 'Berpatah Balik':** Pada detik objek berpatah balik, halajunya menjadi sifar seketika ($v = 0\\text{ m/s}$).",
 ]
 
 # Bank Soalan Dikategorikan Berdasarkan Parameter Yang Dicari (target)
@@ -369,7 +369,7 @@ else:
 
 # Butang Semakan & Penilaian Gred
 if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
-    # 1. Pilih Tips Rawak dan Paparkan Semasa Waktu Menunggu
+    # 1. Pilih Tips Rawak daripada Senarai Kata Kunci
     random_tip = random.choice(KINEMATIC_TIPS)
     tips_placeholder = st.empty()
     tips_placeholder.markdown(
@@ -463,7 +463,7 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
             st.session_state.last_review = full_response
             st.session_state.last_grade = detected_grade
 
-            # Paparan Kotak Gred & Kata-Kata Semangat (Rekod kod dikeluarkan dari tajuk)
+            # Paparan Kotak Gred & Kata-Kata Semangat (Tanpa kod rekod percubaan pada tajuk)
             st.divider()
             if detected_grade == "A":
                 st.balloons()
@@ -489,7 +489,7 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
         else:
             st.error("Pelayan AI sedang sibuk. Sila tekan butang sekali lagi.")
 
-# 6. Bahagian Menu Langkah Seterusnya (Bersih tanpa teks rekod/parameter)
+# 6. Bahagian Menu Langkah Seterusnya (Tanpa paparan teks rekod/parameter)
 if st.session_state.last_review:
     st.divider()
     st.subheader("🎯 Langkah Seterusnya")
