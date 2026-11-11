@@ -80,7 +80,7 @@ KINEMATIC_TIPS = [
     "💡 **Kata Kunci 'Berhenti' / 'Membrek hingga pegun':** Halaju akhir adalah sifar ($v = 0\\text{ m/s}$).",
     "💡 **Kata Kunci 'Nyahpecutan' / 'Perlahan':** Nilai pecutan wajib bertanda negatif ($a = -\\text{nilai}\\text{ m/s}^2$).",
     "💡 **Kata Kunci 'Halaju Malar / Seragam':** Tiada pecutan ($a = 0\\text{ m/s}^2$). Terus gunakan formula ringkas $s = vt$.",
-    "💡 **Kata Kunci 'Berpatah Balik':** Pada detik objek berpatah balik, halajunya menjadi sifar seketika ($v = 0\\text{ m/s}$).",
+    
     "💡 **Tips Pilihan Formula (Tiada $s$):** Jika sesaran tidak dinyatakan atau dicari, gunakan: $v = u + at$",
     "💡 **Tips Pilihan Formula (Tiada $a$):** Jika tiada maklumat pecutan, gunakan: $s = \\frac{1}{2}(u + v)t$",
     "💡 **Tips Pilihan Formula (Tiada $v$):** Jika halaju akhir tidak terlibat, gunakan: $s = ut + \\frac{1}{2}at^2$",
