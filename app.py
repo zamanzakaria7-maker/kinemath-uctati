@@ -20,10 +20,45 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 2. Input Soalan Fizik
+# 2. Pengurusan Soalan Fizik (Bank Soalan + Penjana AI)
 st.subheader("1. Soalan Fizik Kinematik")
-sample_q = "Sebuah kereta bermula dari keadaan pegun dan memecut secara seragam pada kadar 3 m/s² selama 4 saat. Hitungkan sesaran kereta tersebut."
-question = st.text_area("Teks Soalan:", value=sample_q, height=90)
+
+# Koleksi soalan preset pelbagai senario
+preset_questions = {
+    "Senario 1: Memecut dari Pegun (Cari Sesaran)": 
+        "Sebuah kereta bermula dari keadaan pegun dan memecut secara seragam pada kadar 3 m/s² selama 4 saat. Hitungkan sesaran kereta tersebut.",
+    "Senario 2: Membrek / Nyahpecutan (Cari Masa Berhenti)": 
+        "Sebuah motosikal bergerak dengan halaju 25 m/s kemudian membrek dengan nyahpecutan seragam 5 m/s² sehingga berhenti. Berapakah masa yang diambil untuk motosikal itu berhenti sepenuhnya?",
+    "Senario 3: Memecut Memotong Kenderaan (Cari Halaju Akhir)": 
+        "Sebuah lori memecut dari 10 m/s ke halaju akhir v merentasi jarak 75 m dengan pecutan 2 m/s². Tentukan halaju akhir lori tersebut.",
+    "Senario 4: Nyahpecutan Kecemasan (Cari Jarak Berhenti)": 
+        "Sebuah kereta api bergerak pada 30 m/s menekan brek kecemasan dan berhenti selepas 6 saat. Hitungkan jarak yang dilalui sepanjang tempoh membrek."
+}
+
+mode = st.radio("Pilih Sumber Soalan:", ["Bank Soalan", "Jana Soalan Baharu (AI) 🎲", "Taip Soalan Sendiri"], horizontal=True)
+
+# Simpan soalan dalam session state supaya tidak hilang semasa ambil gambar
+if "current_question" not in st.session_state:
+    st.session_state.current_question = preset_questions["Senario 1: Memecut dari Pegun (Cari Sesaran)"]
+
+if mode == "Bank Soalan":
+    pilihan = st.selectbox("Pilih Senario Latihan:", list(preset_questions.keys()))
+    st.session_state.current_question = preset_questions[pilihan]
+    question = st.text_area("Teks Soalan:", value=st.session_state.current_question, height=90)
+
+elif mode == "Jana Soalan Baharu (AI) 🎲":
+    if st.button("Jana Soalan Rawak Baharu ✨"):
+        with st.spinner("AI sedang menjana soalan fizik 1D baharu..."):
+            gen_prompt = "Hasilkan satu soalan fizik peringkat Diploma topik Kinematik 1 Dimensi (bukan jatuh bebas / bukan graviti). Berikan teks soalan sahaja dalam Bahasa Melayu tanpa jawapan. Pastikan nilai nombor mudah untuk diselesaikan."
+            try:
+                gen_resp = client.models.generate_content(model="gemini-3.8-flash", contents=gen_prompt)
+                st.session_state.current_question = gen_resp.text.strip()
+            except Exception:
+                st.session_state.current_question = "Sebuah bas bergerak dari halaju 12 m/s memecut pada 1.5 m/s² selama 8 saat. Cari jarak yang dilalui."
+    question = st.text_area("Teks Soalan Dijana:", value=st.session_state.current_question, height=90)
+
+else:
+    question = st.text_area("Tampal atau Taip Soalan Anda:", value="", placeholder="Tulis soalan fizik di sini...", height=90)
 
 # 3. Fasa Ekstraksi Maklumat (Scaffolding Fizik)
 st.subheader("2. Kenal Pasti Parameter (u, v, s, a, t)")
@@ -62,6 +97,10 @@ else:
     image_file = st.file_uploader("Pilih gambar dari galeri", type=["jpg", "jpeg", "png"])
 
 if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
+    if not question.strip():
+        st.warning("Sila pastikan teks soalan diisi terlebih dahulu.")
+        st.stop()
+
     img = Image.open(image_file)
     
     prompt = f"""
@@ -89,7 +128,6 @@ if image_file and st.button("Semak Jalan Kerja Saya 🚀", type="primary"):
     Gunakan Bahasa Melayu yang mesra dan mudah difahami oleh pelajar diploma.
     """
 
-    # Senarai model keutamaan dengan sandaran automatik jika berlaku 503
     candidate_models = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
     success = False
 
