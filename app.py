@@ -10,7 +10,7 @@ st.set_page_config(
     page_title="KineMath Remedial - UC TATI", page_icon="📐", layout="centered"
 )
 
-# --- SUNTIKAN CSS: KOTAK BIRU, INDIKATOR BIRU & LENCANA GRED ---
+# --- SUNTIKAN CSS: KOTAK BIRU, INDIKATOR BIRU, KAD FORMULA JELAS & LENCANA GRED ---
 st.markdown(
     """
 <style>
@@ -26,7 +26,7 @@ div[data-testid="stSelectbox"] div[data-baseweb="select"] * {
     font-weight: 700 !important;
 }
 
-/* Lencana Biru di bawah setiap dropdown parameter & formula */
+/* Lencana Biru di bawah setiap dropdown parameter */
 .blue-param-indicator {
     background-color: #e3f2fd;
     color: #0d47a1;
@@ -38,6 +38,31 @@ div[data-testid="stSelectbox"] div[data-baseweb="select"] * {
     margin-bottom: 12px;
     display: inline-block;
     border: 1px solid #90caf9;
+}
+
+/* Kad Paparan Formula Terpilih (Besar & Jelas) */
+.selected-formula-card {
+    background: linear-gradient(135deg, #e8f4fd, #d1e9fc);
+    border: 2px solid #1E88E5;
+    border-left: 6px solid #0d47a1;
+    border-radius: 10px;
+    padding: 12px 18px;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(30, 136, 229, 0.15);
+}
+.selected-formula-header {
+    color: #0d47a1;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+.selected-formula-math {
+    color: #0a3880;
+    font-size: 1.25rem;
+    font-weight: 700;
 }
 
 /* Lencana Rekod Percubaan (cth: 1E, 2A) */
@@ -147,13 +172,13 @@ def optimize_image(uploaded_file, max_dim=1024):
     """
     image = Image.open(uploaded_file)
 
-    # 1. Betulkan orientasi EXIF (elak gambar senget semasa diambil guna kamera telefon)
+    # 1. Betulkan orientasi EXIF
     image = ImageOps.exif_transpose(image)
 
     if image.mode in ("RGBA", "P"):
         image = image.convert("RGB")
 
-    # 2. Kurangkan dimensi agar tidak melebihi saiz maksimum
+    # 2. Kurangkan dimensi
     image.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
     # 3. Rawatan Pencahayaan & Ketajaman Tulisan Tangan
@@ -291,7 +316,7 @@ with col2:
     t_status = st.selectbox("Masa (t):", ["Diberi", "Dicari", "Tidak Terlibat"], index=2)
     st.markdown(f"<div class='blue-param-indicator'>✓ Status t: <b>{t_status}</b></div>", unsafe_allow_html=True)
 
-# 4. Fasa Pemilihan Formula
+# 4. Fasa Pemilihan Formula (PERKARA 3 DENGAN PAPARAN JELAS DI BAWAH DROPDOWN)
 st.subheader("3. Pilih Persamaan Kinematik")
 equation_options = [
     "-- Pilih Persamaan --",
@@ -302,8 +327,28 @@ equation_options = [
 ]
 selected_eq = st.selectbox("Persamaan yang paling sesuai:", equation_options)
 
+# Pemetaan format matematik (LaTeX) untuk paparan yang kemas dan jelas
+latex_mapping = {
+    "v = u + at": r"v = u + at",
+    "s = ut + (1/2)at²": r"s = ut + \frac{1}{2}at^2",
+    "v² = u² + 2as": r"v^2 = u^2 + 2as",
+    "s = (1/2)(u + v)t": r"s = \frac{1}{2}(u + v)t",
+}
+
 if selected_eq != "-- Pilih Persamaan --":
-    st.markdown(f"<div class='blue-param-indicator'>✓ Formula Dipilih: <b>{selected_eq}</b></div>", unsafe_allow_html=True)
+    formula_latex = latex_mapping.get(selected_eq, selected_eq)
+    st.markdown(
+        f"""
+        <div class="selected-formula-card">
+            <div class="selected-formula-header">📌 Persamaan Yang Anda Pilih:</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    # Paparkan formula dalam saiz besar menggunakan paparan formula matematik Streamlit
+    st.latex(formula_latex)
+else:
+    st.caption("ℹ️ *Sila pilih salah satu formula di atas yang sepadan dengan parameter yang dikenal pasti.*")
 
 # 5. Fasa Muat Naik / Tangkap Gambar Jawapan
 st.subheader("4. Selesaikan & Semak Algebra")
@@ -321,7 +366,7 @@ if pilihan_kamera == "📁 Pilih dari Galeri / Fail Telefon (Paling Stabil)":
     st.caption("💡 **Tips Telefon:** Ambil gambar kertas jawapan menggunakan kamera biasa telefon terlebih dahulu, kemudian klik butang di bawah dan pilih daripada Galeri / Fail.")
     image_file = st.file_uploader(
         "Pilih Fail / Gambar Kertas Jawapan:",
-        type=None,  # Dibiarkan None agar format HEIC (iPhone) atau JPEG tidak disekat
+        type=None,
         key=f"file_up_{st.session_state.uploader_key}",
     )
 else:
